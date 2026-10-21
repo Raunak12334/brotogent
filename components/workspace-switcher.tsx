@@ -13,13 +13,51 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-const WORKSPACES = [
-  { id: "bar-inc", name: "Bar Inc.", active: true },
-  { id: "acme-corp", name: "Acme Corp", active: false },
+import {
+  createWorkspaceAction,
+  getWorkspaces,
+} from "@/features/workspaces/actions"
+
+interface WorkspaceItem {
+  id: string
+  name: string
+}
+
+const DEFAULT_WORKSPACES: WorkspaceItem[] = [
+  { id: "bar-inc", name: "Bar Inc." },
+  { id: "acme-corp", name: "Acme Corp" },
 ]
 
 export function WorkspaceSwitcher() {
+  const [workspaces, setWorkspaces] =
+    React.useState<WorkspaceItem[]>(DEFAULT_WORKSPACES)
   const [activeWorkspace, setActiveWorkspace] = React.useState("Bar Inc.")
+
+  React.useEffect(() => {
+    let isMounted = true
+    getWorkspaces().then((data) => {
+      if (isMounted && data.length > 0) {
+        setWorkspaces(data.map((w) => ({ id: w.id, name: w.name })))
+        setActiveWorkspace((prev) =>
+          data.some((w) => w.name === prev) ? prev : data[0].name
+        )
+      }
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  async function handleCreateWorkspace() {
+    const name = prompt("Enter new workspace name:")
+    if (name?.trim()) {
+      const trimmed = name.trim()
+      const tempId = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+      setWorkspaces((prev) => [{ id: tempId, name: trimmed }, ...prev])
+      setActiveWorkspace(trimmed)
+      await createWorkspaceAction(trimmed)
+    }
+  }
 
   return (
     <div className="group-data-[collapsible=icon]:hidden min-w-0 flex-1">
@@ -45,7 +83,7 @@ export function WorkspaceSwitcher() {
             <DropdownMenuLabel className="text-xs text-muted-foreground">
               Workspaces
             </DropdownMenuLabel>
-            {WORKSPACES.map((workspace) => (
+            {workspaces.map((workspace) => (
               <DropdownMenuItem
                 key={workspace.id}
                 onClick={() => setActiveWorkspace(workspace.name)}
@@ -63,7 +101,10 @@ export function WorkspaceSwitcher() {
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem className="gap-2 cursor-pointer">
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer"
+              onClick={handleCreateWorkspace}
+            >
               <Sparkles />
               Create workspace
             </DropdownMenuItem>
