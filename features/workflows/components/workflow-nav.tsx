@@ -20,6 +20,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
+import {
+  createWorkflowAction,
+  getWorkflows,
+} from "@/features/workflows/actions"
+
 const INITIAL_WORKFLOWS = [
   "dominant-wasp",
   "honest-reindeer",
@@ -37,12 +42,28 @@ export function WorkflowNav() {
   const [workflows, setWorkflows] = React.useState(INITIAL_WORKFLOWS)
   const [activeWorkflow, setActiveWorkflow] = React.useState("dominant-wasp")
 
-  function createWorkflow() {
+  React.useEffect(() => {
+    let isMounted = true
+    getWorkflows().then((data) => {
+      if (isMounted && data.length > 0) {
+        setWorkflows(data.map((w) => w.name))
+        setActiveWorkflow((prev) =>
+          data.some((w) => w.name === prev) ? prev : data[0].name
+        )
+      }
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  async function createWorkflow() {
     const name = prompt("Enter new workflow name:")
     if (name?.trim()) {
       const trimmed = name.trim()
       setWorkflows((prev) => [trimmed, ...prev])
       setActiveWorkflow(trimmed)
+      await createWorkflowAction(trimmed)
     }
   }
 
