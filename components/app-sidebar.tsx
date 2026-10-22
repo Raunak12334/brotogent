@@ -25,14 +25,18 @@ import {
 } from "@/components/ui/sidebar"
 import { WorkflowNav } from "@/features/workflows/components/workflow-nav"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
+import { listWorkflows } from "@/features/workflows/data"
+import { createWorkflowAction } from "@/features/workflows/actions"
 
 // ---------------------------------------------------------------------------
 // AppSidebar
 // ---------------------------------------------------------------------------
 
-export function AppSidebar({
+export async function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
+  const workflows = await listWorkflows()
+
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border" {...props}>
       <SidebarHeader className="flex flex-row items-center justify-between gap-2 p-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:py-2">
@@ -41,7 +45,7 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        <WorkflowNav />
+        <WorkflowNav workflows={workflows} createWorkflowAction={createWorkflowAction} />
       </SidebarContent>
 
       <SidebarFooter className="p-3">

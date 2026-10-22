@@ -20,51 +20,40 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-import {
+import { generateSlug } from "@/features/workflows/lib/utils"
+import type { Workflow as WorkflowItem } from "@/lib/db/schema"
+
+interface WorkflowNavProps {
+  workflows?: WorkflowItem[]
+  createWorkflowAction: (name: string) => Promise<void>
+}
+
+export function WorkflowNav({
+  workflows: initialWorkflows = [],
   createWorkflowAction,
-  getWorkflows,
-} from "@/features/workflows/actions"
-
-const INITIAL_WORKFLOWS = [
-  "dominant-wasp",
-  "honest-reindeer",
-  "expected-llama",
-  "essential-ocelot",
-  "creepy-echidna",
-  "eastern-silkworm",
-  "cultural-lion",
-  "proud-weasel",
-  "regional-bonobo",
-]
-
-export function WorkflowNav() {
+}: WorkflowNavProps) {
   const { state } = useSidebar()
-  const [workflows, setWorkflows] = React.useState(INITIAL_WORKFLOWS)
-  const [activeWorkflow, setActiveWorkflow] = React.useState("dominant-wasp")
+  const [workflows, setWorkflows] = React.useState<WorkflowItem[]>(initialWorkflows)
+  const [activeWorkflowId, setActiveWorkflowId] = React.useState<string | null>(
+    initialWorkflows[0]?.id ?? null
+  )
 
   React.useEffect(() => {
-    let isMounted = true
-    getWorkflows().then((data) => {
-      if (isMounted && data.length > 0) {
-        setWorkflows(data.map((w) => w.name))
-        setActiveWorkflow((prev) =>
-          data.some((w) => w.name === prev) ? prev : data[0].name
-        )
-      }
-    })
-    return () => {
-      isMounted = false
+    setWorkflows(initialWorkflows)
+    if (initialWorkflows.length > 0) {
+      setActiveWorkflowId((prev) =>
+        prev && initialWorkflows.some((w) => w.id === prev)
+          ? prev
+          : initialWorkflows[0].id
+      )
+    } else {
+      setActiveWorkflowId(null)
     }
-  }, [])
+  }, [initialWorkflows])
 
-  async function createWorkflow() {
-    const name = prompt("Enter new workflow name:")
-    if (name?.trim()) {
-      const trimmed = name.trim()
-      setWorkflows((prev) => [trimmed, ...prev])
-      setActiveWorkflow(trimmed)
-      await createWorkflowAction(trimmed)
-    }
+  async function handleCreateWorkflow() {
+    const name = generateSlug()
+    await createWorkflowAction(name)
   }
 
   // -- Expanded: render the full list inline --------------------------------
@@ -77,7 +66,7 @@ export function WorkflowNav() {
         <SidebarGroupAction
           title="Create workflow"
           aria-label="Create workflow"
-          onClick={createWorkflow}
+          onClick={handleCreateWorkflow}
         >
           <Plus />
           <span className="sr-only">Create workflow</span>
@@ -85,13 +74,13 @@ export function WorkflowNav() {
         <SidebarGroupContent className="mt-1">
           <SidebarMenu className="gap-0.5">
             {workflows.map((workflow) => (
-              <SidebarMenuItem key={workflow}>
+              <SidebarMenuItem key={workflow.id}>
                 <SidebarMenuButton
-                  isActive={activeWorkflow === workflow}
-                  onClick={() => setActiveWorkflow(workflow)}
+                  isActive={activeWorkflowId === workflow.id}
+                  onClick={() => setActiveWorkflowId(workflow.id)}
                   className="cursor-pointer font-normal"
                 >
-                  <span className="truncate">{workflow}</span>
+                  <span className="truncate">{workflow.name}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -121,7 +110,7 @@ export function WorkflowNav() {
         >
           <button
             type="button"
-            onClick={createWorkflow}
+            onClick={handleCreateWorkflow}
             className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
             <Plus className="size-4 shrink-0" />
@@ -131,16 +120,16 @@ export function WorkflowNav() {
           <div className="py-1">
             {workflows.map((workflow) => (
               <button
-                key={workflow}
+                key={workflow.id}
                 type="button"
-                onClick={() => setActiveWorkflow(workflow)}
+                onClick={() => setActiveWorkflowId(workflow.id)}
                 className={`flex w-full items-center px-4 py-2.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${
-                  activeWorkflow === workflow
+                  activeWorkflowId === workflow.id
                     ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
                     : "text-popover-foreground"
                 }`}
               >
-                <span className="truncate">{workflow}</span>
+                <span className="truncate">{workflow.name}</span>
               </button>
             ))}
           </div>
