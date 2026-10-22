@@ -13,11 +13,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-import {
-  createWorkspaceAction,
-  getWorkspaces,
-} from "@/features/workspaces/actions"
-
 interface WorkspaceItem {
   id: string
   name: string
@@ -33,29 +28,13 @@ export function WorkspaceSwitcher() {
     React.useState<WorkspaceItem[]>(DEFAULT_WORKSPACES)
   const [activeWorkspace, setActiveWorkspace] = React.useState("Bar Inc.")
 
-  React.useEffect(() => {
-    let isMounted = true
-    getWorkspaces().then((data) => {
-      if (isMounted && data.length > 0) {
-        setWorkspaces(data.map((w) => ({ id: w.id, name: w.name })))
-        setActiveWorkspace((prev) =>
-          data.some((w) => w.name === prev) ? prev : data[0].name
-        )
-      }
-    })
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
-  async function handleCreateWorkspace() {
+  function handleCreateWorkspace() {
     const name = prompt("Enter new workspace name:")
     if (name?.trim()) {
       const trimmed = name.trim()
       const tempId = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-")
       setWorkspaces((prev) => [{ id: tempId, name: trimmed }, ...prev])
       setActiveWorkspace(trimmed)
-      await createWorkspaceAction(trimmed)
     }
   }
 
