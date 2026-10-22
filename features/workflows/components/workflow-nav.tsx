@@ -1,6 +1,8 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Plus, Workflow } from "lucide-react"
 
 import {
@@ -33,22 +35,11 @@ export function WorkflowNav({
   createWorkflowAction,
 }: WorkflowNavProps) {
   const { state } = useSidebar()
+  const pathname = usePathname()
   const [workflows, setWorkflows] = React.useState<WorkflowItem[]>(initialWorkflows)
-  const [activeWorkflowId, setActiveWorkflowId] = React.useState<string | null>(
-    initialWorkflows[0]?.id ?? null
-  )
 
   React.useEffect(() => {
     setWorkflows(initialWorkflows)
-    if (initialWorkflows.length > 0) {
-      setActiveWorkflowId((prev) =>
-        prev && initialWorkflows.some((w) => w.id === prev)
-          ? prev
-          : initialWorkflows[0].id
-      )
-    } else {
-      setActiveWorkflowId(null)
-    }
   }, [initialWorkflows])
 
   async function handleCreateWorkflow() {
@@ -76,8 +67,8 @@ export function WorkflowNav({
             {workflows.map((workflow) => (
               <SidebarMenuItem key={workflow.id}>
                 <SidebarMenuButton
-                  isActive={activeWorkflowId === workflow.id}
-                  onClick={() => setActiveWorkflowId(workflow.id)}
+                  render={<Link href={`/workflows/${workflow.id}`} />}
+                  isActive={pathname === `/workflows/${workflow.id}`}
                   className="cursor-pointer font-normal"
                 >
                   <span className="truncate">{workflow.name}</span>
@@ -119,18 +110,15 @@ export function WorkflowNav({
           <SidebarSeparator />
           <div className="py-1">
             {workflows.map((workflow) => (
-              <button
-                key={workflow.id}
-                type="button"
-                onClick={() => setActiveWorkflowId(workflow.id)}
-                className={`flex w-full items-center px-4 py-2.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${
-                  activeWorkflowId === workflow.id
-                    ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                    : "text-popover-foreground"
-                }`}
-              >
-                <span className="truncate">{workflow.name}</span>
-              </button>
+              <SidebarMenuItem key={workflow.id}>
+                <SidebarMenuButton
+                  render={<Link href={`/workflows/${workflow.id}`} />}
+                  isActive={pathname === `/workflows/${workflow.id}`}
+                  className="w-full cursor-pointer rounded-none px-4 py-2.5 font-normal"
+                >
+                  <span className="truncate">{workflow.name}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             ))}
           </div>
         </PopoverContent>
