@@ -1,67 +1,92 @@
 "use client"
 
-import { useCallback } from "react"
+import { useCallback, useSyncExternalStore } from "react"
+import { useTheme } from "next-themes"
 import {
-  ReactFlow,
-  Background,
-  Controls,
-  MiniMap,
   addEdge,
-  useNodesState,
+  Controls,
+  ReactFlow,
   useEdgesState,
+  useNodesState,
+  ConnectionLineType,
+  type ColorMode,
+  type Connection,
   type Edge,
-  type OnConnect,
+  NodeTypes,
 } from "@xyflow/react"
+
+import { StepNode } from "@/features/workflows/components/step-node"
+import type { StepNodeType } from "@/features/workflows/nodes/node-registry"
 
 import "@xyflow/react/dist/style.css"
 
-const initialNodes = [
+const nodeTypes: NodeTypes = { step: StepNode }
+
+const initialNodes: StepNodeType[] = [
   {
-    id: "1",
-    position: { x: 100, y: 150 },
-    data: { label: "Start" },
-    type: "input",
-  },
-  {
-    id: "2",
-    position: { x: 350, y: 150 },
-    data: { label: "Step 1" },
-  },
-  {
-    id: "3",
-    position: { x: 600, y: 150 },
-    data: { label: "End" },
-    type: "output",
+    id: "start",
+    type: "step",
+    position: { x: 0, y: 0 },
+    data: { type: "start", kind: "trigger", title: "Start", values: {} },
   },
 ]
 
-const initialEdges = [
-  { id: "e1-2", source: "1", target: "2", animated: true },
-  { id: "e2-3", source: "2", target: "3", animated: true },
-]
+const initialEdges: Edge[] = []
 
-export function WorkflowCanvas() {
+const emptySubscribe = () => () => { }
+
+// False during server render and hydration, true after mount. Keeps the
+// server and initial client render identical to avoid a hydration mismatch.
+function useMounted() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  )
+}
+
+export function Canvas() {
+  const { resolvedTheme } = useTheme()
+  const mounted = useMounted()
+  const colorMode: ColorMode = mounted
+    ? (resolvedTheme as ColorMode) ?? "light"
+    : "light"
   const [nodes, , onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
-  const onConnect = useCallback<OnConnect>(
-    (connection) => setEdges((eds: Edge[]) => addEdge(connection, eds)),
-    [setEdges],
+  const onConnect = useCallback(
+    (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
+    [setEdges]
   )
 
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      onConnect={onConnect}
-      proOptions={{ hideAttribution: true }}
-      fitView
-    >
-      <Background />
-      <Controls />
-      <MiniMap />
-    </ReactFlow>
+    <div className="size-full">
+      <ReactFlow
+        nodeTypes={nodeTypes}
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        colorMode={colorMode}
+        fitView
+        connectionLineType={ConnectionLineType.SmoothStep}
+        connectionLineStyle={{ stroke: "var(--border)" }}
+        defaultEdgeOptions={{
+          type: "smoothstep",
+          style: { stroke: "var(--border)" },
+        }}
+        style={
+          {
+            "--xy-background-color": "var(--background)",
+            "--xy-edge-stroke-width": 2,
+            "--xy-connectionline-stroke-width": 2,
+          } as React.CSSProperties
+        }
+        maxZoom={1}
+      >
+        <Controls />
+      </ReactFlow>
+    </div>
   )
 }
